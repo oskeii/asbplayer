@@ -8,10 +8,15 @@ from anki.decks import DeckId
 from anki.collection import Collection, OpChanges
 
 from .model.config import AddonConfig
-from .server.websocket_server import AsbplayerWebSocketServer, _log
+from .server.websocket_server import (
+    AsbplayerWebSocketServer,
+    TexthookerBroadcastServer,
+    _log
+)
 
 config: AddonConfig | None = None
 server: AsbplayerWebSocketServer | None = None
+texthooker_server: TexthookerBroadcastServer | None = None
 
 
 def _on_add_note(self: Collection, note: Note, deck_id: DeckId) -> OpChanges:
@@ -47,35 +52,54 @@ def _handle_note_added(note: Note) -> None:
 
 
 def start_server() -> None:
-    """Start the WebSocket server."""
-    global server
+    """Start the WebSocket servers (based on config flags)."""
+    global server, texthooker_server
 
-    if server is not None or config is None:
+    if config is None:
         return
 
-    _log(f"Starting WebSocket server on port {config.get_port()}")
-    server = AsbplayerWebSocketServer(config.get_port())
-    if not server.start():
-        _log(f"Failed to start WebSocket server on port {config.get_port()}")
-        server = None
+    # Mining server
+    if config.is_asbbplayer_server_enabled() and server is None:
+        _log(f"Starting asbplayer mining server on port {config.get_port()}")
+        server = AsbplayerWebSocketServer(config.get_port())
+
+        if not server.start():
+            _log(f"Failed to start asbplayer mining server on port {config.get_port()}")
+            server = None
+
+
+    # Texthooker broadcast server
+    if config.is_texthooker_server_enabled() and texthooker_server is None:
+        port = config.get_texthooker_port()
+        _log(f"Starting texthooker server on port {port}")
+        texthooker_server = TexthookerBroadcastServer(port)
+
+        if not texthooker_server.start():
+            _log(f"Failed to start texthooker server on port {port}")
+            texthooker_server = None
+
 
 
 def stop_server() -> None:
-    """Stop the WebSocket server."""
-    global server
+    """Stop both WebSocket servers."""
+    global server, texthooker_server
 
     if server is not None:
         server.stop()
         server = None
 
+    if texthooker_server is not None:
+        texthooker_server.stop()
+        texthooker_server = None
+
 
 def on_profile_loaded() -> None:
-    """Called when a profile is loaded - start the server."""
+    """Called when a profile is loaded - start servers."""
     start_server()
 
 
 def on_profile_will_close() -> None:
-    """Called when profile is about to close - stop the server."""
+    """Called when profile is about to close - stop servers."""
     stop_server()
 
 

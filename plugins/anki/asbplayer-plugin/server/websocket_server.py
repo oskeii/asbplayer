@@ -21,7 +21,7 @@ except ImportError:
 if WEBSOCKETS_AVAILABLE:
 
     class AsbplayerWebSocketServer(QObject):
-        """WebSocket server for asbplayer communication."""
+        """WebSocket server for asbplayer communication (one-click mining)."""
 
         def __init__(self, port: int, parent: QObject | None = None):
             super().__init__(parent)
@@ -119,6 +119,102 @@ if WEBSOCKETS_AVAILABLE:
 
             _log("Client disconnected")
 
+
+    class TexthookerBroadcastServer(QObject):
+        """WebSocket relay that broadcasts subtitle text to texthooker-ui"""
+
+        def __init__(self, port: int, parent: QObject | None = None):
+            super().__init__(parent)
+            self._port = port
+            self._server: QWebSocketServer | None = None
+            self._clients: list[QWebSocket] = []
+
+        def start(self) -> bool:
+            """Start the broadcast server. Returns Tru on success"""
+            if self._server is not None:
+                return True
+
+            self._server = QWebSocketServer(
+                "texthooker-broadcast",
+                QWebSocketServer.SslMode.NonSecureMode,
+                self,
+            )
+
+            if not self._server.listen(QHostAddress.SpecialAddress.Any, self._port):
+                _log(
+                    f"Texthooker: failed to listen on port {self._port}: "
+                    f"{self._server.errorString()}"
+                )
+                self._server = None
+                return False
+
+            self._server.newConnection.connect(self._on_new_connection)
+            _log(f"Texthooker broadcast server started on port {self._port}")
+            return True
+
+        def stop(self) -> None:
+            """Stop the server and disconnect all clients."""
+            if self._server is None:
+                return
+
+            for client in self._clients:
+                client.close()
+            self._clients.clear()
+
+            self._server.close()
+            self._server = None
+            _log("Texthooker broadcast server stopped")
+
+        def has_clients(self) -> bool:
+            """Return True if there is a connected client."""
+            return len(self._clients) > 0
+
+        @pyqtSlot()
+        def _on_new_connection(self) -> None:
+            if self._server is None:
+                return
+
+            client = self._server.nextPendingConnection()
+            if client is None:
+                return
+
+            client.textMessageReceived.connect(
+                lambda msg, c=client: self._on_text_message(c, msg)
+            )
+            client.disconnected.connect(
+                lambda c=client: self._on_client_disconnected(c)
+            )
+
+            self._clients.append(client)
+            _log(
+                f"Texthooker client connected: {client.peerAddress().toString()} "
+                f"({len(self._clients)} total)"
+            )
+
+        def _on_text_message(self, sender: QWebSocket, message: str) -> None:
+            """Relay message from sender to all other connected clients."""
+            _log(f"Received from client: '{message}', broadcasting to {len(self._clients) - 1} others")
+            dead: list[QWebSocket] = []
+
+            for client in self._clients:
+                if client is sender:
+                    continue
+                if client.isValid():
+                    client.sendTextMessage(message)
+                else:
+                    dead.append(client)
+
+            for client in dead:
+                self._clients.remove(client)
+                client.deleteLater()
+
+        def _on_client_disconnected(self, client: QWebSocket) -> None:
+            if client in self._clients:
+                self._clients.remove(client)
+            client.deleteLater()
+
+            _log(f"Texthooker client disconnected ({len(self._clients)} remaining)")
+
 else:
 
     class AsbplayerWebSocketServer:
@@ -139,3 +235,19 @@ else:
 
         def send_message(self, message: dict) -> None:
             pass
+
+
+    class TexthookerBroadcastServer(QObject):
+        """Fallback stub when QtWebSockets is not available."""
+        def __init__(self, port: int, parent=None):
+            self._port = port
+            _log("QtWebSockets not available - Texthooker broadcast disabled")
+
+        def start(self) -> bool:
+            return False
+
+        def stop(self) -> None:
+            pass
+
+        def has_clients(self) -> bool:
+            return False

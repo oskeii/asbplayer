@@ -1,4 +1,7 @@
 {
     "port": 8766,
-    "postMineAction": 2
+    "postMineAction": 2,
+    "enableAsbplayerServer": true,
+    "enableTexthookerServer": false,
+    "texthookerPort": 8767
 }
