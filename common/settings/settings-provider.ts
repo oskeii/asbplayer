@@ -221,6 +221,8 @@ export const defaultSettings: AsbplayerSettings = {
     },
     webSocketClientEnabled: false,
     webSocketServerUrl: 'ws://127.0.0.1:8766/ws',
+    texthookerBroadcastEnabled: false,
+    texthookerServerUrl: 'ws://127.0.0.1:8767',
     pauseOnHoverMode: 0,
     lastSelectedAnkiExportMode: 'default',
     dictionaryTracks: [defaultDictionaryTrackSettings, defaultDictionaryTrackSettings, defaultDictionaryTrackSettings],

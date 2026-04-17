@@ -478,6 +478,11 @@ export interface WebSocketClientSettings {
     readonly webSocketClientEnabled: boolean;
 }
 
+export interface TexthookerClientSettings {
+    texthookerBroadcastEnabled: boolean;
+    texthookerServerUrl: string;
+}
+
 export type ChromeBoundKeyBindName = 'copySubtitle' | 'ankiExport' | 'updateLastCard' | 'exportCard' | 'takeScreenshot';
 export type SubtitleAlignment = 'top' | 'bottom';
 export enum SubtitleListPreference {
@@ -566,7 +571,8 @@ export interface AsbplayerSettings
         SubtitleSettings,
         DictionarySettings,
         StreamingVideoSettings,
-        WebSocketClientSettings {
+        WebSocketClientSettings,
+        TexthookerClientSettings {
     readonly subtitlePreview: string;
 }
 

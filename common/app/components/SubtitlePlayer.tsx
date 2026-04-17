@@ -42,6 +42,7 @@ import { isMobile } from 'react-device-detect';
 import ChromeExtension, { ExtensionMessage } from '../services/chrome-extension';
 import { MineSubtitleCommand, WebSocketClient } from '../../web-socket-client';
 import './subtitles.css';
+import { useTexthookerClient } from '../hooks/use-texthooker-client';
 
 let lastKnownWidth: number | undefined;
 export const minSubtitlePlayerWidth = 200;
@@ -465,6 +466,8 @@ export default function SubtitlePlayer({
     autoPauseContextRef.current = autoPauseContext;
     const onSubtitlesHighlightedRef = useRef<(subtitles: SubtitleModel[]) => void>(undefined);
     onSubtitlesHighlightedRef.current = onSubtitlesHighlighted;
+    const texthookerClient = useTexthookerClient({ settings });
+    const lastBroadcastedSubtitleRef = useRef<string>('');
 
     // Performance optimization: Set highlight style via refs rather than React state to avoid re-renders
     const updateHighlightedSubtitleRows = () => {
@@ -888,6 +891,36 @@ export default function SubtitlePlayer({
             return copyFromWebSocketClient({ postMineAction, text, word, definition, customFieldValues });
         };
     }, [webSocketClient, extension, settings, copyFromWebSocketClient]);
+
+    // Broadcast current subtitle to texthooker-ui
+    useEffect(() => {
+        if (!texthookerClient) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const indexes = highlightedSubtitleIndexesRef.current;
+            if (!indexes || !subtitleListRef.current) return;
+
+            const subtitleIndexes = Object.keys(indexes).map(Number);
+            if (subtitleIndexes.length === 0) return;
+
+            const text = subtitleIndexes
+                .sort((a, b) => a-b)
+                .map((i) => subtitleListRef.current[i])
+                .filter((s) => s && s.track === 0)  // only primary track
+                .map((s) => s.text).filter(Boolean)
+                .join('\n');
+
+            if (text && text !== lastBroadcastedSubtitleRef.current) {
+                lastBroadcastedSubtitleRef.current = text;
+                texthookerClient.sendSubtitle(text);
+            }
+
+        }, 200);
+
+        return () => clearInterval(interval);
+    }, [texthookerClient]);
 
     useEffect(() => {
         if (extension.installed) {

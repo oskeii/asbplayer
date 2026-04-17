@@ -62,6 +62,8 @@ const MiscSettingTab: React.FC<Props> = ({
         pauseOnHoverMode,
         webSocketClientEnabled,
         webSocketServerUrl,
+        texthookerBroadcastEnabled,
+        texthookerServerUrl,
     } = settings;
     const validRegex = useMemo(() => regexIsValid(subtitleRegexFilter), [subtitleRegexFilter]);
     const [webSocketConnectionSucceeded, setWebSocketConnectionSucceeded] = useState<boolean>();
@@ -313,6 +315,27 @@ const MiscSettingTab: React.FC<Props> = ({
                         },
                     }}
                 />
+
+                <SettingsSection>{t('settings.texthookerInterface')}</SettingsSection>
+                <SwitchLabelWithHoverEffect
+                    control={
+                        <Switch
+                            checked={texthookerBroadcastEnabled}
+                            onChange={(e) => onSettingChanged('texthookerBroadcastEnabled', e.target.checked)}
+                        />
+                    }
+                    label={t('settings.texthookerBroadcastEnabled')}
+                    labelPlacement="start"
+                />
+                <SettingsTextField
+                    color="primary"
+                    fullwidth
+                    label={t('settings.texthookerServerUrl')}
+                    value={texthookerServerUrl}
+                    disabled={!texthookerBroadcastEnabled}
+                    onChange={(e) => onSettingChanged('texthookerServerUrl', e.target.value)}
+                />
+
                 <SettingsSection>{t('settings.mining')}</SettingsSection>
                 <SettingsTextField
                     type="number"

@@ -513,6 +513,12 @@ const settingsSchema = {
         webSocketServerUrl: {
             type: 'string',
         },
+        texthookerBroadcastEnabled: {
+            type: 'boolean',
+        },
+        texthookerServerUrl: {
+            type: 'string',
+        },
         pauseOnHoverMode: {
             type: 'number',
         },

@@ -537,6 +537,9 @@
         "dictionaryImportedMaturity": "Treat imported words as",
         "ui": "UI",
         "webSocketInterface": "WebSocket interface",
+        "texthookerInterface": "Texthooker interface",
+        "texthookerBroadcastEnabled": "Broadcast subtitles to texthooker",
+        "texthookerServerUrl": "Texthooker WebSocket URL",
         "yomitanHelperText": "Instructions to setup Yomitan API are <0>here<0>."
     },
     "subtitlePlayer": {
